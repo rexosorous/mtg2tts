@@ -3,6 +3,7 @@ import getopt
 import json
 import re
 import sys
+from time import sleep
 
 # local modules
 import Scryfall
@@ -91,7 +92,7 @@ def parse(deck_str: str) -> list[dict]:
     Returns:
         decklist (list[dict])
     '''
-    REGEX = "(?P<qty>\d+) (?P<name>[\w\d :&'/,-]+)(?: \((?P<set>\w+)\)|$)(?: (?P<num>\w+))?"
+    REGEX = "(?P<qty>\d+) (?P<name>[\w\d :!&'/,-]+)(?: \((?P<set>\w+)\)|$)(?: (?P<num>\w+))?"
     decklist = list()
 
     deck_str_split = deck_str.split('\n\nSIDEBOARD:\n')
@@ -131,7 +132,7 @@ def generate_cards(decklist: list[dict], sleeve: str = 'http://3.219.233.7/image
         'other': list()
     }
 
-    token_ids = list()
+    token_ids = set()
 
     response = Scryfall.bulk_search(decklist)
     for card_data in response['data']:
@@ -139,11 +140,12 @@ def generate_cards(decklist: list[dict], sleeve: str = 'http://3.219.233.7/image
 
         # fixup wrong language
         if card_data['lang'] != 'en':
+            sleep(0.1)
             card_data = Scryfall.exact_search(card_data['set'], card_data['collector_number'])
 
         # does this produce tokens?
         if 'all_parts' in card_data:
-            token_ids += [token['id'] for token in card_data['all_parts'] if token['component'] == 'token']
+            token_ids = token_ids.union((token['id'] for token in card_data['all_parts'] if token['component'] == 'token'))
 
         # is this a single faced card?
         if 'image_uris' in card_data:
@@ -166,7 +168,7 @@ def generate_cards(decklist: list[dict], sleeve: str = 'http://3.219.233.7/image
         })
 
     # handle tokens
-    for card_data in Scryfall.token_search(token_ids)['data']:
+    for card_data in Scryfall.token_search(list(token_ids))['data']:
         piles['other'].append({
             'name': card_data['name'],
             'qty': 1,
@@ -176,7 +178,9 @@ def generate_cards(decklist: list[dict], sleeve: str = 'http://3.219.233.7/image
 
     if piles['other']: piles['other'] = reversed(piles['other'])
 
-    if not_found := [_find_in_decklist(decklist, x) for x in response['not_found']]:
+    if response['not_found']:
+        print(response['not_found'])
+        not_found = [_find_in_decklist(decklist, x) for x in response['not_found']]
         raise CardsNotFoundError(not_found, piles)
 
     return piles

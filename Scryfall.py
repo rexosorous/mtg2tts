@@ -129,6 +129,9 @@ def token_search(tokens: list[str]) -> dict:
     '''
     ENDPOINT = '/cards/collection'
 
+    if not tokens:
+        return {'data': []}
+
     pages = list()
     while tokens:
         pages.append(tokens[:75])
