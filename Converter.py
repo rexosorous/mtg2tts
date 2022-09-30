@@ -136,6 +136,9 @@ def generate_cards(decklist: list[dict], sleeve: str = 'http://3.219.233.7/image
     response = Scryfall.bulk_search(decklist)
     for card_data in response['data']:
         input_card = _find_in_decklist(decklist, card_data)
+        if card_data['lang'] != 'en':
+            print(card_data['name'])
+            card_data = Scryfall.exact_search(card_data['set'], card_data['collector_number'])
 
         # does this produce tokens?
         if 'all_parts' in card_data:

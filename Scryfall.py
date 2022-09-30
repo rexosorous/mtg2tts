@@ -82,7 +82,7 @@ def exact_search(set_code: str, collector_number: str) -> dict:
         (dict): response from scryfall
     '''
     ENDPOINT = f'/cards'
-    return send_get(f'{BASE_URL}{ENDPOINT}/{set_code}/{collector_number}')
+    return send_get(f'{BASE_URL}{ENDPOINT}/{set_code}/{collector_number}/en')
 
 
 def bulk_search(decklist: list[dict]) -> dict:
